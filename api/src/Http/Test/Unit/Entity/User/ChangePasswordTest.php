@@ -1,0 +1,57 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Http\Test\Unit\Entity\User;
+
+use App\Auth\Service\PasswordHasher;
+use App\Http\Test\Builder\UserBuilder;
+use PHPUnit\Framework\TestCase;
+
+class ChangePasswordTest extends TestCase
+{
+    public function testSuccess(): void
+    {
+        $user = (new UserBuilder())->active()->build();
+        $hasher = $this->createHasher(true, $hash = 'new-hash');
+        $user->changePassword(
+            'old-password',
+            'new-password',
+            $hasher
+        );
+
+        self::assertEquals($hash, $user->getPasswordHash());
+    }
+
+    public function testWrongCurren(): void
+    {
+        $user = (new UserBuilder())->active()->build();
+        $hasher = $this->createHasher(false, $hash = 'new-hash');
+        $this->expectExceptionMessage('Incorrect current password');
+        $user->changePassword(
+            'wrong-old-password',
+            'new-password',
+            $hasher
+        );
+    }
+
+    public function testByNetwork(): void
+    {
+        $user = (new UserBuilder())->viaNetwork()->build();
+        $hasher = $this->createHasher(false, $hash = 'new-hash');
+        $this->expectExceptionMessage('User does not have an old password');
+        $user->changePassword(
+            'any-old-password',
+            'new-password',
+            $hasher
+        );
+    }
+
+
+    private function createHasher(bool $validate, string $hash)
+    {
+        $hasher = $this->createStub(PasswordHasher::class);
+        $hasher->method('validate')->willReturn($validate);
+        $hasher->method('hash')->willReturn($hash);
+        return $hasher;
+    }
+}

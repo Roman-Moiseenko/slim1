@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Auth\Entity\User;
 
+use App\Auth\Service\PasswordHasher;
+
 class User
 {
 
@@ -14,6 +16,7 @@ class User
     private ?Token $joinConfirmToken = null;
     private Status $status;
     private \ArrayObject $networks;
+    private ?Token $passwordResetToken = null;
     //private NetworkIdentity $network;
 
     public function __construct(
@@ -122,5 +125,33 @@ class User
                 throw new \DomainException('Network is already attached');
         }
         $this->networks->append($identity);
+    }
+
+    public function requestPasswordReset(Token $token, \DateTimeImmutable $date)
+    {
+        if (!$this->isActive()) throw new \DomainException('User is not active');
+        if ($this->passwordResetToken != null && !$this->passwordResetToken->isExpiredTo($date))
+            throw new \DomainException('Resetting is already requested');
+        $this->passwordResetToken = $token;
+    }
+
+    public function getPasswordResetToken(): ?Token
+    {
+        return $this->passwordResetToken;
+    }
+
+    public function resetPassword(string $token, \DateTimeImmutable $date, string $hash)
+    {
+        if ($this->passwordResetToken === null) throw new \DomainException('Resetting is not requested');
+        $this->passwordResetToken->validate($token, $date);
+        $this->passwordResetToken = null;
+        $this->passwordHash = $hash;
+    }
+
+    public function changePassword(string $current, string $new, PasswordHasher $hasher)
+    {
+        if ($this->passwordHash === null) throw new \DomainException('User does not have an old password');
+        if (!$hasher->validate($current, $this->getPasswordHash())) throw new \DomainException('Incorrect current password');
+        $this->passwordHash = $hasher->hash($new);
     }
 }

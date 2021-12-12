@@ -74,7 +74,7 @@ class ConfirmTest extends TestCase
     {
         return new Token(
             Uuid::uuid4()->toString(),
-            new \DateTimeImmutable('+1 day')
+            (new \DateTimeImmutable())->modify('+1 day')
         );
     }
 }
