@@ -17,6 +17,9 @@ class User
     private Status $status;
     private \ArrayObject $networks;
     private ?Token $passwordResetToken = null;
+    private ?Token $newEmailToken = null;
+    private ?Email $newEmail = null;
+    private Role $role;
     //private NetworkIdentity $network;
 
     public function __construct(
@@ -30,6 +33,7 @@ class User
         $this->date = $date;
         $this->email = $email;
         $this->status = $status;
+        $this->role = Role::user();
         $this->networks = new \ArrayObject();
     }
 
@@ -153,5 +157,57 @@ class User
         if ($this->passwordHash === null) throw new \DomainException('User does not have an old password');
         if (!$hasher->validate($current, $this->getPasswordHash())) throw new \DomainException('Incorrect current password');
         $this->passwordHash = $hasher->hash($new);
+    }
+
+    public function requestEmailChanging(Token $token, \DateTimeImmutable $date, Email $email)
+    {
+        if (!$this->isActive()) throw new \DomainException('User is not active');
+        if ($this->email->isEqualTo($email)) throw new \DomainException('Email is already same');
+        if ($this->newEmailToken !== null && !$this->newEmailToken->isExpiredTo($date)) throw new \DomainException('Changing is already requested');
+        $this->newEmail = $email;
+        $this->newEmailToken = $token;
+    }
+
+    /**
+     * @return Email|null
+     */
+    public function getNewEmail(): ?Email
+    {
+        return $this->newEmail;
+    }
+
+    /**
+     * @return Token|null
+     */
+    public function getNewEmailToken(): ?Token
+    {
+        return $this->newEmailToken;
+    }
+
+    public function confirmEmailChanging(string $token, \DateTimeImmutable $date): void
+    {
+        if ($this->newEmail === null || $this->newEmailToken === null) throw new \DomainException('Changing is not requested');
+        $this->newEmailToken->validate($token, $date);
+        $this->email = $this->newEmail;
+        $this->newEmail = null;
+        $this->newEmailToken = null;
+    }
+
+    /**
+     * @return Role
+     */
+    public function getRole(): Role
+    {
+        return $this->role;
+    }
+
+    public function changeRole(Role $role)
+    {
+        $this->role = $role;
+    }
+
+    public function remove()
+    {
+        if (!$this->isWait()) throw new \DomainException('Unable to remove active user');
     }
 }

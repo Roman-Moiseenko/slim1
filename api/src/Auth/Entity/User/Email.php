@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Auth\Entity\User;
 
+use JetBrains\PhpStorm\Pure;
 use Webmozart\Assert\Assert;
 
 class Email
@@ -20,5 +21,10 @@ class Email
     public function getValue(): string
     {
         return $this->value;
+    }
+
+    #[Pure] public function isEqualTo(Email $email): bool
+    {
+        return $this->value === $email->getValue();
     }
 }

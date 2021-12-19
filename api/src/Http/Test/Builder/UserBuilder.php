@@ -73,10 +73,17 @@ class UserBuilder
         return $user;
     }
 
-    public function viaNetwork(NetworkIdentity $identity = null)
+    public function viaNetwork(NetworkIdentity $identity = null): UserBuilder
     {
         $clone = clone $this;
         $clone->networkIdentity = $identity ?? new NetworkIdentity('vk', '0001');
+        return $clone;
+    }
+
+    public function withEmail(Email $email): UserBuilder
+    {
+        $clone = clone $this;
+        $clone->email = $email;
         return $clone;
     }
 }
