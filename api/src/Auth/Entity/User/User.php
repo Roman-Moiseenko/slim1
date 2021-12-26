@@ -4,23 +4,60 @@ declare(strict_types=1);
 namespace App\Auth\Entity\User;
 
 use App\Auth\Service\PasswordHasher;
+use ArrayObject;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use JetBrains\PhpStorm\Pure;
 
+/**
+ * @ORM\Entity
+ * @ORM\HasLifecycleCallbacks
+ * @ORM\Table(name="auth_users")
+ */
 class User
 {
 
-
+    /**
+     * @ORM\Column(type="auth_user_id")
+     * @ORM\Id
+     */
     private Id $id;
+    /**
+     * @ORM\Column(type="date_immutable")
+     */
     private \DateTimeImmutable $date;
+    /**
+     * @ORM\Column(type="auth_user_email", unique=true)
+     */
     private Email $email;
+    /**
+     * @ORM\Column (type="string", name="password_hash", nullable=true)
+     */
     private ?string $passwordHash = null;
+
+    #[ORM\Embedded(class: Token::class)]
     private ?Token $joinConfirmToken = null;
+    /**
+     * @ORM\Column (type="auth_user_status", length=16)
+     */
     private Status $status;
-    private \ArrayObject $networks;
+    #[ORM\Embedded(class: Token::class)]
     private ?Token $passwordResetToken = null;
+    #[ORM\Embedded(class: Token::class)]
     private ?Token $newEmailToken = null;
+    /**
+     * @ORM\Column(type="auth_user_email", nullable=true)
+     */
     private ?Email $newEmail = null;
+    /**
+     * @ORM\Column (type="auth_user_role", length=16)
+     */
     private Role $role;
-    //private NetworkIdentity $network;
+    /**
+     * @ORM\OneToMany(targetEntity="UserNetwork", mappedBy="user", cascade={"all"}, orphanRemoval=true)
+     */
+    private Collection $networks;
 
     public function __construct(
         Id                 $id,
@@ -34,7 +71,7 @@ class User
         $this->email = $email;
         $this->status = $status;
         $this->role = Role::user();
-        $this->networks = new \ArrayObject();
+        $this->networks = new ArrayCollection();
     }
 
     public static function requestJoinByEmail(Id                 $id,
@@ -52,19 +89,19 @@ class User
     public static function requestJoinByNetwork(Id                 $id,
                                                 \DateTimeImmutable $date,
                                                 Email              $email,
-                                                NetworkIdentity    $network): self
+                                                Network            $network): self
     {
         $user = new self($id, $date, $email, Status::active());
-        $user->networks->append($network);
+        $user->networks->add(new UserNetwork($user, $network));
         return $user;
     }
 
-    public function isWait(): bool
+    #[Pure] public function isWait(): bool
     {
         return $this->status->isWait();
     }
 
-    public function isActive(): bool
+    #[Pure] public function isActive(): bool
     {
         return $this->status->isActive();
     }
@@ -118,17 +155,19 @@ class User
      */
     public function getNetworks(): array
     {
-        return $this->networks->getArrayCopy();
+        return $this->networks->map(static function (UserNetwork $network) {
+            return $network->getNetwork();
+        })->toArray();
     }
 
-    public function attachNetwork(NetworkIdentity $identity)
+    public function attachNetwork(Network $identity)
     {
-        /** @var NetworkIdentity $existing */
-        foreach ($this->networks as $existing){
-            if ($existing->isEqualTo($identity))
+        /** @var UserNetwork $existing */
+        foreach ($this->networks as $existing) {
+            if ($existing->getNetwork()->isEqualTo($identity))
                 throw new \DomainException('Network is already attached');
         }
-        $this->networks->append($identity);
+        $this->networks->add(new UserNetwork($this, $identity));
     }
 
     public function requestPasswordReset(Token $token, \DateTimeImmutable $date)
@@ -209,5 +248,16 @@ class User
     public function remove()
     {
         if (!$this->isWait()) throw new \DomainException('Unable to remove active user');
+    }
+
+    /**
+     * @ORM\PostLoad()
+     */
+    public function checkEmbeds()
+    {
+        if ($this->joinConfirmToken && $this->joinConfirmToken->isEmpty()) $this->joinConfirmToken = null;
+        if ($this->passwordResetToken && $this->passwordResetToken->isEmpty()) $this->passwordResetToken = null;
+        if ($this->newEmailToken && $this->newEmailToken->isEmpty()) $this->newEmailToken = null;
+
     }
 }

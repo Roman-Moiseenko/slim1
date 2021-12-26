@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Auth\Entity\User;
 
 use JetBrains\PhpStorm\Pure;
+use Webmozart\Assert\Assert;
 
 class Status
 {
@@ -11,8 +12,12 @@ class Status
     private const ACTIVE = 'active';
     private string $value;
 
-    private function __construct(string $value)
+    public function __construct(string $value)
     {
+        Assert::oneOf($value, [
+            self::WAIT,
+            self::ACTIVE
+        ]);
         $this->value = $value;
     }
 
@@ -34,6 +39,11 @@ class Status
     public function isActive(): bool
     {
         return $this->value === self::ACTIVE;
+    }
+
+    public function getName(): string
+    {
+        return $this->value;
     }
 
 }

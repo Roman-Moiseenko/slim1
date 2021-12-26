@@ -3,12 +3,25 @@ declare(strict_types=1);
 
 namespace App\Auth\Entity\User;
 
+use Doctrine\ORM\Mapping as ORM;
 use Webmozart\Assert\Assert;
 
+/**
+ * @ORM\Embeddable()
+ */
 class Token
 {
-    private \DateTimeImmutable $expires;
-    private string $value;
+    /**
+     * @var string
+     * @ORM\Column (type="string", nullable=true)
+     */
+    private $value;
+
+    /**
+     * @var \DateTimeImmutable
+     * @ORM\Column (type="date_immutable", nullable=true)
+     */
+    private  $expires;
 
     public function __construct(string $value, \DateTimeImmutable $expires)
     {
@@ -43,5 +56,10 @@ class Token
     private function isEqualTo(string $token): bool
     {
         return $this->value == $token;
+    }
+
+    public function isEmpty(): bool
+    {
+        return empty($this->value);
     }
 }

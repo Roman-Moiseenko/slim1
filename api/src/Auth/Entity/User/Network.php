@@ -3,32 +3,33 @@ declare(strict_types=1);
 
 namespace App\Auth\Entity\User;
 
+use JetBrains\PhpStorm\Pure;
 use Webmozart\Assert\Assert;
 
-class NetworkIdentity
+class Network
 {
-    private string $network;
+    private string $name;
     private string $identity;
 
     public function __construct(string $network, string $identity)
     {
         Assert::notEmpty($network);
         Assert::notEmpty($identity);
-        $this->network = mb_strtolower($network);
+        $this->name = mb_strtolower($network);
         $this->identity = mb_strtolower($identity);
     }
 
-    public function isEqualTo(self $network): bool
+    #[Pure] public function isEqualTo(self $network): bool
     {
-        return $this->getNetwork() === $network->getNetwork() &&
+        return $this->getName() === $network->getName() &&
             $this->getIdentity() === $network->getIdentity();
     }
     /**
      * @return string
      */
-    public function getNetwork(): string
+    public function getName(): string
     {
-        return $this->network;
+        return $this->name;
     }
 
     /**

@@ -35,7 +35,7 @@ class Handler
     {
         $user = $this->users->get(new Id($command->id));
         $email = new Email($command->email);
-        if ($this->users->hasByEmail($command->email))
+        if ($this->users->hasByEmail(new Email($command->email)))
             throw new \DomainException('Email is already in use');
         $date = new \DateTimeImmutable();
         $user->requestEmailChanging(

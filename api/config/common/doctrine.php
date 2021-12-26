@@ -2,11 +2,13 @@
 declare(strict_types=1);
 
 use Doctrine\Common\Cache\Psr6\DoctrineProvider;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
 return [
-    \Doctrine\ORM\EntityManagerInterface::class => function (\DI\Container $container): \Doctrine\ORM\EntityManagerInterface {
+    EntityManagerInterface::class => function (\DI\Container $container): EntityManagerInterface {
         $settings = $container->get('config')['doctrine'];
         $config = \Doctrine\ORM\Tools\Setup::createAnnotationMetadataConfiguration(
             $settings['metadata_dirs'],
@@ -18,8 +20,13 @@ return [
             false
         );
         $config->setNamingStrategy(new \Doctrine\ORM\Mapping\UnderscoreNamingStrategy());
+        foreach ($settings['types'] as $name => $class) {
+            if (!Type::hasType($name)) {
+                Type::addType($name, $class);
+            }
+        }
         return \Doctrine\ORM\EntityManager::create(
-            $settings, $config
+            $settings['connection'], $config
         );
     },
     'config' => [
@@ -36,8 +43,14 @@ return [
                 'charset' => 'utf-8'
             ],
             'metadata_dirs' => [
-                '/src/Auth/Entity',
-            ]
+                __DIR__ . '/../../src/Auth/Entity',
+            ],
+            'types' => [
+                App\Auth\Entity\User\IdType::NAME => App\Auth\Entity\User\IdType::class,
+                App\Auth\Entity\User\EmailType::NAME => App\Auth\Entity\User\EmailType::class,
+                App\Auth\Entity\User\RoleType::NAME => App\Auth\Entity\User\RoleType::class,
+                App\Auth\Entity\User\StatusType::NAME => App\Auth\Entity\User\StatusType::class,
+            ],
         ]
     ]
 ];

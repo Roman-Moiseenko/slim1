@@ -5,7 +5,7 @@ namespace App\Http\Test\Builder;
 
 use App\Auth\Entity\User\Email;
 use App\Auth\Entity\User\Id;
-use App\Auth\Entity\User\NetworkIdentity;
+use App\Auth\Entity\User\Network;
 use App\Auth\Entity\User\Status;
 use App\Auth\Entity\User\Token;
 use App\Auth\Entity\User\User;
@@ -20,7 +20,7 @@ class UserBuilder
     private ?Token $joinConfirmToken;
     private Status $status;
     private bool $active = false;
-    private ?NetworkIdentity $networkIdentity = null;
+    private ?Network $networkIdentity = null;
 
     public function __construct()
     {
@@ -73,10 +73,10 @@ class UserBuilder
         return $user;
     }
 
-    public function viaNetwork(NetworkIdentity $identity = null): UserBuilder
+    public function viaNetwork(Network $identity = null): UserBuilder
     {
         $clone = clone $this;
-        $clone->networkIdentity = $identity ?? new NetworkIdentity('vk', '0001');
+        $clone->networkIdentity = $identity ?? new Network('vk', '0001');
         return $clone;
     }
 

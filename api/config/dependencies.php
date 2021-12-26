@@ -1,7 +1,15 @@
 <?php
 declare(strict_types=1);
 
-$files = glob(__DIR__ . '/common/*.php');
+use Laminas\ConfigAggregator\ConfigAggregator;
+use Laminas\ConfigAggregator\PhpFileProvider;
+
+$aggregator = new ConfigAggregator([
+    new PhpFileProvider(__DIR__ . '/common/*.php')]
+);
+
+return $aggregator->getMergedConfig();
+/*$files = glob(__DIR__ . '/common/*.php');
 
 $configs = array_map(
     static function ($file) {
@@ -10,3 +18,4 @@ $configs = array_map(
     $files
 );
 return array_merge_recursive(...$configs);
+*/
